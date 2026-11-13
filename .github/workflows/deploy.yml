@@ -1,0 +1,50 @@
+
+name: Deploy GitHub Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Source repository workflow run ID
+        required: true
+        type: string
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish website
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Download web build
+        uses: actions/download-artifact@v8
+        with:
+          name: feed-web
+          path: ./dist
+          repository: ruslanbay/feed
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.SOURCE_ARTIFACT_READ_TOKEN }}
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
